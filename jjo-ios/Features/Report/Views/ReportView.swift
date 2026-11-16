@@ -47,7 +47,12 @@ struct ReportView: View {
         .background(Color.background.ignoresSafeArea())
         .overlay {
             if viewModel.showsAnalyzing {
-                AnalyzingView(isDone: viewModel.isAnalysisDone, onDone: { viewModel.celebrate() }, onBack: goBack)
+                AnalyzingView(
+                    isDone: viewModel.isAnalysisDone,
+                    detail: environment.runner.stage?.message ?? "잠시만 기다려 주세요.",
+                    onDone: { viewModel.celebrate() },
+                    onBack: goBack
+                )
                     .id(viewModel.recordingID)
             }
         }

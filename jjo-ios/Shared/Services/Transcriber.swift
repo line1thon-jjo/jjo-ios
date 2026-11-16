@@ -18,20 +18,34 @@ nonisolated enum Transcriber {
     }
 
     @concurrent
-    static func words(from url: URL) async throws -> [WordTiming] {
+    static func prepare(onProgress: @Sendable @escaping (Double) -> Void = { _ in }) async throws {
         guard await isSupported() else {
             throw AnalysisError(code: .engineUnavailable, message: "이 기기에서는 한국어 음성 인식을 쓸 수 없습니다.")
         }
-        let transcriber = SpeechTranscriber(
-            locale: locale,
-            transcriptionOptions: [],
-            reportingOptions: [],
-            attributeOptions: [.audioTimeRange, .transcriptionConfidence]
-        )
         do {
-            if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
-                try await request.downloadAndInstall()
+            guard let request = try await AssetInventory.assetInstallationRequest(supporting: [makeTranscriber()])
+            else { return }
+            let progress = request.progress
+            let reporter = Task {
+                while !Task.isCancelled {
+                    onProgress(progress.fractionCompleted)
+                    try? await Task.sleep(for: .milliseconds(300))
+                }
             }
+            defer { reporter.cancel() }
+            try await request.downloadAndInstall()
+        } catch {
+            throw AnalysisError(
+                code: .engineUnavailable,
+                message: "음성 인식 모델을 준비하지 못했습니다: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    @concurrent
+    static func words(from url: URL) async throws -> [WordTiming] {
+        let transcriber = makeTranscriber()
+        do {
             let analyzer = SpeechAnalyzer(modules: [transcriber])
             let file = try AVAudioFile(forReading: url)
             let collector = Task { try await collect(from: transcriber) }
@@ -50,6 +64,15 @@ nonisolated enum Transcriber {
                 message: "음성 인식을 실행할 수 없습니다: \(error.localizedDescription)"
             )
         }
+    }
+
+    private static func makeTranscriber() -> SpeechTranscriber {
+        SpeechTranscriber(
+            locale: locale,
+            transcriptionOptions: [],
+            reportingOptions: [],
+            attributeOptions: [.audioTimeRange, .transcriptionConfidence]
+        )
     }
 
     private static func collect(from transcriber: SpeechTranscriber) async throws -> [WordTiming] {

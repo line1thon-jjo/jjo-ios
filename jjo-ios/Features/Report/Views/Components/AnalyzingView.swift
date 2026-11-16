@@ -13,6 +13,7 @@ struct AnalyzingView: View {
     private static let glowSize: CGFloat = 480
 
     let isDone: Bool
+    var detail = "잠시만 기다려 주세요."
     let onDone: () -> Void
     let onBack: () -> Void
 
@@ -30,8 +31,10 @@ struct AnalyzingView: View {
 
             VStack(spacing: Spacing.x3) {
                 label
-                Text("잠시만 기다려 주세요.")
+                Text(detail)
                     .font_14_regular(.textBody)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.x8)
                     .opacity(isDone ? 0 : 1)
                     .animation(reduceMotion ? nil : Motion.slow, value: isDone)
             }
@@ -39,7 +42,7 @@ struct AnalyzingView: View {
             .background { glow }
             .padding(.bottom, Spacing.x8 * 2)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(isDone ? "분석 완료!" : "분석 중. 잠시만 기다려 주세요.")
+            .accessibilityLabel(isDone ? "분석 완료!" : "분석 중. \(detail)")
         }
         .background(Color.background.ignoresSafeArea())
         .opacity(isVisible && !isLeaving ? 1 : 0)

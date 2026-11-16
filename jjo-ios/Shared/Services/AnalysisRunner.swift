@@ -6,7 +6,24 @@
 //
 
 import Foundation
+import OSLog
 import UIKit
+
+nonisolated enum AnalysisStage: Equatable, Sendable {
+    case preparing(progress: Double)
+    case transcribing
+    case analyzing
+    case writingFeedback
+
+    var message: String? {
+        switch self {
+        case .preparing(let progress):
+            "음성 인식 모델을 내려받고 있어요. 처음 한 번만 필요해요. (\(Int(progress * 100))%)"
+        case .transcribing, .analyzing, .writingFeedback:
+            nil
+        }
+    }
+}
 
 @Observable
 final class AnalysisRunner {
@@ -20,6 +37,7 @@ final class AnalysisRunner {
     private var queue: [UUID] = []
     private var worker: Task<Void, Never>?
     private(set) var activeRecordingID: UUID?
+    private(set) var stage: AnalysisStage?
 
     init(store: PracticeStore) {
         self.store = store
@@ -87,7 +105,10 @@ final class AnalysisRunner {
         let outcome = await Self.analyze(
             url: store.storage.url(for: recording.fileName),
             script: recording.scriptSnapshot
-        )
+        ) { [weak self] stage in
+            Task { @MainActor [weak self] in self?.stage = stage }
+        }
+        stage = nil
         UIApplication.shared.endBackgroundTask(background)
 
         guard let current = store.recording(id: recordingID)?.report else { return }
@@ -106,17 +127,43 @@ final class AnalysisRunner {
     }
 
     @concurrent
-    private static func analyze(url: URL, script: String) async -> Outcome {
+    private static func analyze(
+        url: URL,
+        script: String,
+        onStage: @Sendable @escaping (AnalysisStage) -> Void
+    ) async -> Outcome {
+        let clock = ContinuousClock()
+        var mark = clock.now
+        func lap(_ name: String) {
+            let now = clock.now
+            logger.info("\(name, privacy: .public) \(String(describing: now - mark), privacy: .public)")
+            mark = now
+        }
         do {
+            logger.info("start \(url.lastPathComponent, privacy: .public)")
+            onStage(.preparing(progress: 0))
+            try await Transcriber.prepare { onStage(.preparing(progress: $0)) }
+            lap("prepare")
+            onStage(.transcribing)
             let samples = try AudioDecoder.samples(from: url)
+            lap("decode")
             let words = try await Transcriber.words(from: url)
+            lap("transcribe")
+            onStage(.analyzing)
             let result = try SpeechEngine.analyze(samples: samples, script: script, words: words)
+            lap("engine")
+            onStage(.writingFeedback)
             let feedback = await FeedbackWriter.write(for: result)
+            lap("feedback")
             return Outcome(result: result, feedback: feedback)
         } catch let error as AnalysisError {
+            logger.error("failed \(error.code.rawValue, privacy: .public) \(error.message, privacy: .public)")
             return Outcome(failure: error.code)
         } catch {
+            logger.error("failed \(error.localizedDescription, privacy: .public)")
             return Outcome(failure: .internal)
         }
     }
+
+    private nonisolated static let logger = Logger(subsystem: "com.awesomejjo.jjo", category: "analysis")
 }

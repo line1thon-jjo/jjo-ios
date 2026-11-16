@@ -46,7 +46,10 @@ struct RootView: View {
         .environment(navigation)
         .environment(menu)
         .environment(reveal)
-        .task { environment.runner.resumeInterrupted() }
+        .task {
+            environment.runner.resumeInterrupted()
+            try? await Transcriber.prepare()
+        }
     }
 
     private var main: some View {
