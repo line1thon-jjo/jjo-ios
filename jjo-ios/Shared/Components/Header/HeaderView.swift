@@ -21,11 +21,7 @@ struct HeaderView: View {
         HStack {
             switch leading {
             case .logo:
-                Image(.logoJjo)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(height: Layout.headerLogoHeight)
-                    .accessibilityLabel("jjo")
+                HeaderLogo()
             case .back(let action):
                 Button(action: action) {
                     Icon(.iconArrowLeft, size: Layout.headerButton, color: .textIcon)

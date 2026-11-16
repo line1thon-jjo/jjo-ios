@@ -18,7 +18,6 @@ struct AppMenuLayer: ViewModifier {
         content
             .menuPanel(
                 isPresented: $menu.isPresented,
-                title: "jjo",
                 subtitle: "모든 기록은 이 기기에만 저장돼요",
                 items: [
                     MenuPanelItem(title: "사용법 다시 보기") { menu.replayOnboarding() }

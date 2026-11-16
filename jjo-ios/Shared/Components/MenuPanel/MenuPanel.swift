@@ -9,7 +9,6 @@ import SwiftUI
 
 struct MenuPanel<Footer: View>: View {
     @Binding var isPresented: Bool
-    let title: String
     var subtitle: String?
     let items: [MenuPanelItem]
     @ViewBuilder let footer: () -> Footer
@@ -20,7 +19,6 @@ struct MenuPanel<Footer: View>: View {
         ZStack {
             if isPresented {
                 MenuPanelContent(
-                    title: title,
                     subtitle: subtitle,
                     items: items,
                     onClose: close,
@@ -39,13 +37,12 @@ struct MenuPanel<Footer: View>: View {
 }
 
 extension MenuPanel where Footer == EmptyView {
-    init(isPresented: Binding<Bool>, title: String, subtitle: String? = nil, items: [MenuPanelItem]) {
-        self.init(isPresented: isPresented, title: title, subtitle: subtitle, items: items) { EmptyView() }
+    init(isPresented: Binding<Bool>, subtitle: String? = nil, items: [MenuPanelItem]) {
+        self.init(isPresented: isPresented, subtitle: subtitle, items: items) { EmptyView() }
     }
 }
 
 private struct MenuPanelContent<Footer: View>: View {
-    let title: String
     let subtitle: String?
     let items: [MenuPanelItem]
     let onClose: () -> Void
@@ -57,6 +54,7 @@ private struct MenuPanelContent<Footer: View>: View {
         GeometryReader { proxy in
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
+                    HeaderLogo()
                     Spacer(minLength: 0)
                     BurgerButton(isOpen: hasAppeared, action: onClose)
                 }
@@ -91,22 +89,15 @@ private struct MenuPanelContent<Footer: View>: View {
         .accessibilityAction(.escape, onClose)
     }
 
+    @ViewBuilder
     private var heading: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font_18_semibold(.ink)
+        if let subtitle {
+            Text(subtitle)
+                .font_14_regular(.textZinc)
                 .lineLimit(1)
-
-            if let subtitle {
-                Text(subtitle)
-                    .font_14_regular(.textZinc)
-                    .lineLimit(1)
-            }
+                .padding(.top, Spacing.x3)
+                .padding(.bottom, Spacing.x6)
         }
-        .padding(.top, Spacing.x3)
-        .padding(.bottom, Spacing.x6)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
     }
 
     private var list: some View {
@@ -185,24 +176,22 @@ private struct MenuPanelRise: ViewModifier {
 extension View {
     func menuPanel<Footer: View>(
         isPresented: Binding<Bool>,
-        title: String,
         subtitle: String? = nil,
         items: [MenuPanelItem],
         @ViewBuilder footer: @escaping () -> Footer
     ) -> some View {
         overlay {
-            MenuPanel(isPresented: isPresented, title: title, subtitle: subtitle, items: items, footer: footer)
+            MenuPanel(isPresented: isPresented, subtitle: subtitle, items: items, footer: footer)
         }
     }
 
     func menuPanel(
         isPresented: Binding<Bool>,
-        title: String,
         subtitle: String? = nil,
         items: [MenuPanelItem]
     ) -> some View {
         overlay {
-            MenuPanel(isPresented: isPresented, title: title, subtitle: subtitle, items: items)
+            MenuPanel(isPresented: isPresented, subtitle: subtitle, items: items)
         }
     }
 }
@@ -220,7 +209,6 @@ extension View {
     .background(Color.background)
     .menuPanel(
         isPresented: $isPresented,
-        title: "jjo",
         subtitle: "모든 기록은 이 기기에만 저장돼요",
         items: [
             MenuPanelItem(title: "데모 모드", accessory: .toggle(isOn: isDemo)) { isDemo.toggle() },
