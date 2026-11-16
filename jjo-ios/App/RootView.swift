@@ -15,10 +15,15 @@ struct RootView: View {
     @State private var menu = AppMenu()
     @State private var reveal = ScriptReveal()
     @State private var isSplashVisible = true
+    @State private var isSupported = true
 
     var body: some View {
         ZStack {
-            if environment.settings.onboardingCompleted {
+            if !isSupported {
+                NoticeView(title: "이 기기에서는 jjo를 쓸 수 없어요.", message: "한국어 음성 인식을 지원하는 기기가 필요해요.")
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .background(Color.background.ignoresSafeArea())
+            } else if environment.settings.onboardingCompleted {
                 main
                     .transition(.opacity)
             } else {
@@ -47,9 +52,20 @@ struct RootView: View {
         .environment(menu)
         .environment(reveal)
         .task {
+            isSupported = await Self.supportsAnalysis()
+            guard isSupported else { return }
             environment.runner.resumeInterrupted()
             try? await Transcriber.prepare()
         }
+    }
+
+    private static func supportsAnalysis() async -> Bool {
+        // 시뮬레이터에는 한국어 음성 인식 모델이 없어서, 화면 확인까지 막히지 않도록 통과시킨다
+        #if targetEnvironment(simulator)
+        true
+        #else
+        await Transcriber.isSupported()
+        #endif
     }
 
     private var main: some View {
