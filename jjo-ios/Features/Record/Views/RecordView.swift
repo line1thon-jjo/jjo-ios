@@ -22,11 +22,13 @@ struct RecordView: View {
     @State private var script = ""
     @State private var hasMorphed = false
     @State private var isSubmitting = false
+    @State private var isUnsupported = false
 
     private static let barHeight: CGFloat = 76
 
     private var failure: String? {
-        recorder.errorMessage ?? (recorder.isTooShort ? RecordMessage.tooShort : nil)
+        if isUnsupported { return RecordMessage.unsupported }
+        return recorder.errorMessage ?? (recorder.isTooShort ? RecordMessage.tooShort : nil)
     }
 
     private var notice: String? {
@@ -140,7 +142,11 @@ struct RecordView: View {
 
     private func start() {
         Haptics.open()
-        Task { await recorder.start() }
+        Task {
+            isUnsupported = await !Transcriber.isSupported()
+            guard !isUnsupported else { return }
+            await recorder.start()
+        }
     }
 
     private func pause() {
