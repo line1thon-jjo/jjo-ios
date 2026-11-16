@@ -12,6 +12,8 @@ import Speech
 
 nonisolated enum Transcriber {
     static let locale = Locale(identifier: "ko-KR")
+    private static let tickInterval = Duration.milliseconds(300)
+    private static let stallTicks = 400
 
     static func isSupported() async -> Bool {
         await SpeechTranscriber.supportedLocales.contains { $0.identifier(.bcp47) == locale.identifier(.bcp47) }
@@ -25,20 +27,48 @@ nonisolated enum Transcriber {
         do {
             guard let request = try await AssetInventory.assetInstallationRequest(supporting: [makeTranscriber()])
             else { return }
-            let progress = request.progress
-            let reporter = Task {
-                while !Task.isCancelled {
-                    onProgress(progress.fractionCompleted)
-                    try? await Task.sleep(for: .milliseconds(300))
-                }
-            }
-            defer { reporter.cancel() }
-            try await request.downloadAndInstall()
+            try await install(request, onProgress: onProgress)
+        } catch let error as AnalysisError {
+            throw error
         } catch {
             throw AnalysisError(
                 code: .engineUnavailable,
                 message: "음성 인식 모델을 준비하지 못했습니다: \(error.localizedDescription)"
             )
+        }
+    }
+
+    private static func install(
+        _ request: AssetInstallationRequest,
+        onProgress: @Sendable @escaping (Double) -> Void
+    ) async throws {
+        let progress = request.progress
+        let (ticks, continuation) = AsyncThrowingStream<Double, Error>.makeStream()
+        let download = Task {
+            do {
+                try await request.downloadAndInstall()
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
+        let ticker = Task {
+            while !Task.isCancelled {
+                continuation.yield(progress.fractionCompleted)
+                try? await Task.sleep(for: tickInterval)
+            }
+        }
+        defer {
+            ticker.cancel()
+            download.cancel()
+        }
+
+        var stall = DownloadStall(limit: stallTicks)
+        for try await fraction in ticks {
+            onProgress(fraction)
+            if stall.isStalled(at: fraction) {
+                throw AnalysisError(code: .engineUnavailable, message: "음성 인식 모델 내려받기가 멈췄습니다.")
+            }
         }
     }
 

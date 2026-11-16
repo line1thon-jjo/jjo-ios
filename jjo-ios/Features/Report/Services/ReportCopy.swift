@@ -48,7 +48,8 @@ nonisolated enum ReportCopy {
         case .audioTooLong: "녹음이 너무 길어요. 10분 안으로 녹음해 주세요."
         case .noSpeech: "목소리가 들리지 않았어요. 마이크를 확인하고 다시 녹음해 주세요."
         case .alignmentLowCoverage: "대본과 녹음이 많이 달라요. 대본을 보며 다시 읽어 주세요."
-        case .engineUnavailable, .internal, nil: fallbackError
+        case .engineUnavailable: "음성 인식을 준비하지 못했어요. Wi-Fi 연결을 확인하고 다시 시도해 주세요."
+        case .internal, nil: fallbackError
         }
     }
 
