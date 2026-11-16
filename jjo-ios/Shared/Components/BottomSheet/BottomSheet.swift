@@ -35,6 +35,7 @@ struct BottomSheet<Content: View, Footer: View>: View {
                             maxHeight: screenHeight * Layout.sheetMaxHeightRatio - proxy.safeAreaInsets.bottom,
                             alignment: .bottom
                         )
+                        .geometryGroup()
                         .offset(y: dragOffset)
                         .transition(.move(edge: .bottom))
                 }
