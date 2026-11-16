@@ -50,23 +50,20 @@ final class RangePlayer {
         guard let player else { return }
         ticker?.cancel()
 
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .spokenAudio)
-        try? session.setActive(true)
-
         player.currentTime = TimeInterval(range.startMs) / 1000
         playing = range
         position = locate?(Double(range.startMs)) ?? -1
 
-        guard player.play() else {
-            stop()
-            return
-        }
-
         ticker = Task { [weak self] in
+            await AudioSession.activateForPlayback()
+            guard !Task.isCancelled, let self, self.playing == range else { return }
+            guard player.play() else {
+                self.stop()
+                return
+            }
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(16))
-                guard !Task.isCancelled, let self, self.tick(range, locate: locate) else { return }
+                guard !Task.isCancelled, self.tick(range, locate: locate) else { return }
             }
         }
     }

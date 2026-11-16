@@ -62,9 +62,7 @@ final class AudioRecorder {
             return
         }
         do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
-            try session.setActive(true)
+            try await AudioSession.activateForRecording()
 
             let url = try storage.makeDraftURL()
             let created = try AVAudioRecorder(
@@ -118,7 +116,7 @@ final class AudioRecorder {
         reachedLimit = false
         errorMessage = nil
         status = .idle
-        deactivateSession()
+        AudioSession.deactivate()
     }
 
     func takeFile() -> (url: URL, durationMs: Int)? {
@@ -139,7 +137,7 @@ final class AudioRecorder {
         level = 0
         reachedLimit = hitLimit
         status = .done
-        deactivateSession()
+        AudioSession.deactivate()
     }
 
     private func startTicker() {
@@ -165,10 +163,6 @@ final class AudioRecorder {
             try? FileManager.default.removeItem(at: fileURL)
         }
         fileURL = nil
-    }
-
-    private func deactivateSession() {
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
     private static func normalized(_ decibels: Float) -> Float {
