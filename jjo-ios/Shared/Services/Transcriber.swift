@@ -16,7 +16,7 @@ nonisolated enum Transcriber {
     private static let stallTicks = 400
 
     static func isSupported() async -> Bool {
-        await SpeechTranscriber.supportedLocales.contains { $0.identifier(.bcp47) == locale.identifier(.bcp47) }
+        await SpeechTranscriber.supportedLocale(equivalentTo: locale) != nil
     }
 
     @concurrent
