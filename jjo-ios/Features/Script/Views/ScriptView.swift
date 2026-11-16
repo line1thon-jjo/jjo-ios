@@ -31,9 +31,19 @@ struct ScriptView: View {
                 HeaderView(leading: .back(back), isMenuOpen: menu.isPresented, onMenu: openMenu)
 
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(ScriptMessage.description)
-                        .pretendard(.regular, 13, .textBody, lineHeight: .percent160, tracking: false)
-                        .padding(.bottom, 13)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(ScriptMessage.description)
+                            .pretendard(.regular, 13, .textBody, lineHeight: .percent160, tracking: false)
+                        Spacer(minLength: Spacing.x2)
+                        if viewModel.script.isEmpty {
+                            TextButton(ScriptSample.buttonTitle, variant: .underline) {
+                                Haptics.select()
+                                viewModel.update(ScriptSample.text)
+                            }
+                            .padding(.vertical, -Spacing.x2)
+                        }
+                    }
+                    .padding(.bottom, 13)
 
                     PillButton("파일 업로드", icon: .iconUpload, variant: .wide) {
                         isEditorFocused = false
