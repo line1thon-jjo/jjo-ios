@@ -104,13 +104,11 @@ struct PracticeRow: View {
     }
 
     private var clip: some View {
-        let isFixed = entry.latestCompletedID != nil
         let isOverflowing = contentHeight > Self.clipHeight + 1
 
         return summary
             .fixedSize(horizontal: false, vertical: true)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
-            .frame(height: isFixed ? Self.clipHeight : nil, alignment: .top)
             .frame(maxHeight: Self.clipHeight, alignment: .top)
             .clipped()
             .mask {
