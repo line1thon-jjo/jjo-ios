@@ -65,7 +65,6 @@ struct ScriptView: View {
                     )
                     .padding(.top, isCompact ? Spacing.x4 : 35)
                 }
-                .padding(.top, isCompact ? Spacing.x5 : 50)
                 .padding(.horizontal, Spacing.screenHorizontal)
                 .padding(.bottom, bottomPadding(isCompact: isCompact, safeBottom: proxy.safeAreaInsets.bottom))
             }
