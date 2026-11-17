@@ -11,6 +11,7 @@ struct AppMenuLayer: ViewModifier {
     @Environment(AppEnvironment.self) private var environment
     @Environment(NavigationManager.self) private var navigation
     @Environment(AppMenu.self) private var menu
+    @Environment(\.openURL) private var openURL
 
     func body(content: Content) -> some View {
         @Bindable var menu = menu
@@ -20,7 +21,9 @@ struct AppMenuLayer: ViewModifier {
                 isPresented: $menu.isPresented,
                 subtitle: "모든 기록은 이 기기에만 저장돼요",
                 items: [
-                    MenuPanelItem(title: "사용법 다시 보기") { menu.replayOnboarding() }
+                    MenuPanelItem(title: "사용법 다시 보기") { menu.replayOnboarding() },
+                    MenuPanelItem(title: "문의하기") { openURL(AppLinks.support) },
+                    MenuPanelItem(title: "개인정보 처리방침") { openURL(AppLinks.privacy) }
                 ]
             ) {
                 VStack(alignment: .leading, spacing: Spacing.x1) {
